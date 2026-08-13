@@ -1,0 +1,59 @@
+# AGENTS.md
+
+Context for any coding agent working on this project. Read this before changing anything.
+
+All three Sortie prompts read this file — the planning stage plans against it, the build
+stage treats it as binding, and the review stage checks the work against it. It is the one
+place to encode what an agent cannot infer from the code in the time it has. Delete the
+guidance in brackets as you fill each section in.
+
+## What this is
+
+[One or two paragraphs. What the project does and who it is for. Point at the deeper
+explanation — `README.md`, a design doc — rather than repeating it.]
+
+## Hard constraints
+
+[The rules that are load-bearing: a change breaking one is wrong even if it works. Be
+specific and say why, so the agent can recognise a novel case. Typical entries:
+
+- Dependency policy — what may be added, and what must never be.
+- Language or runtime floor, and the syntax it rules out.
+- Anything with real-world side effects that the code must not do.
+- Invariants that look like implementation detail but are deliberate.
+- Things CI greps for and will reject.]
+
+## Layout
+
+[A table of the paths an agent will need, and what each holds. Not every file — the ones a
+ticket is likely to touch, plus where tests and fixtures live.]
+
+| Path | What it holds |
+| --- | --- |
+| | |
+
+## Verifying a change
+
+[The exact commands, copy-pasteable, that prove a change is good. Mirror CI: if CI runs it,
+it belongs here. The build stage runs every command in this section that applies to what it
+touched and must see them all pass before committing, and the review stage runs them again
+independently — a PR whose claimed checks do not reproduce is sent back.]
+
+```bash
+```
+
+[Then: what needs test coverage, and where tests and fixtures go.]
+
+## Conventions
+
+[Commit message style. Whether to keep changes minimal. File permissions that matter.
+Anything you would say in review for the third time.]
+
+## Automated issue workflow
+
+Labelled issues are handled by Claude Code through Sortie. How that works, which labels
+drive it, and what this project never lets an agent decide alone:
+[`config/sortie/README.md`](config/sortie/README.md).
+
+That is the whole of it — this section is a pointer and does not go stale. Nothing about the
+workflow is described twice.

@@ -1,0 +1,17 @@
+# When a human must decide
+
+The changes in this project that an agent must never wave through on its own, however small
+the diff looks. The planning stage reads this before self-approving a plan, and the build
+stage before skipping the code review. See [`README.md`](README.md) for the gates
+themselves.
+
+This file is yours. The installer writes it once and never touches it again, so nothing
+here is lost when the template is upgraded.
+
+[Both stages already refuse on the usual grounds — auth, secrets, money, migrations, public
+interfaces, dependencies, CI and deploy config. This is for what is particular to *this*
+project: the module everyone gets wrong, the file whose format something downstream parses,
+the threshold that fails silently, the config a customer depends on. Say why, so the agent
+recognises a case you did not list. Delete this paragraph as you fill the list in.]
+
+- **`path/to/thing`.** [What goes wrong, and why the test suite would not catch it.]
