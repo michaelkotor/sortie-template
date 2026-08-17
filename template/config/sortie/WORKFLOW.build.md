@@ -1,6 +1,8 @@
 ---
-# Stage 2 of 3 — building. Sits between WORKFLOW.plan.md and WORKFLOW.review.md. All three
-# stages run on opencode/deepseek-v4-flash-free, the free OpenCode Zen DeepSeek model.
+# Stage 2 of 3 — building. Sits between WORKFLOW.plan.md and WORKFLOW.review.md. This is the
+# highest-volume stage, so it runs on OpenCode's free opencode/deepseek-v4-flash-free — no
+# key needed. Planning and review run on Claude Code (claude-opus-5) instead; see
+# WORKFLOW.plan.md.
 #
 # Label an issue `plan-approved` — or let the planning stage self-approve one — and the
 # agent implements the plan it posted earlier, verifies it, pushes a branch, and opens a

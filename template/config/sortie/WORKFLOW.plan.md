@@ -1,7 +1,7 @@
 ---
-# Stage 1 of 3 — planning. Followed by WORKFLOW.build.md and WORKFLOW.review.md. All three
-# stages run on opencode/deepseek-v4-flash-free, the free OpenCode Zen DeepSeek model — it
-# needs no API key. Swap the model line for any other OpenCode model if you have one.
+# Stage 1 of 3 — planning. Followed by WORKFLOW.build.md and WORKFLOW.review.md. Planning and
+# review run on Claude Code (claude-opus-5) — the two passes where judgement matters most.
+# Building runs on OpenCode's free deepseek-v4-flash-free instead; see WORKFLOW.build.md.
 #
 # Label an issue `agent-plan` and the agent reads it, works out how it fits the codebase,
 # and posts an implementation plan as a comment. It writes nothing and pushes nothing.
@@ -85,16 +85,17 @@ hooks:
   timeout_ms: 120000
 
 agent:
-  kind: opencode
-  command: opencode
+  kind: claude-code
+  command: claude
   max_turns: 1                    # read, plan, comment, stop
   max_concurrent_agents: 1
   turn_timeout_ms: 1800000        # 30 min
   stall_timeout_ms: 300000        # 5 min of silence = stalled
 
-opencode:
-  dangerously_skip_permissions: true  # required headless; the workspace is disposable
-  model: opencode/deepseek-v4-flash-free  # free OpenCode Zen model; runs without a key
+claude-code:
+  permission_mode: bypassPermissions  # required headless; the workspace is disposable
+  model: claude-opus-5                # planning is the part worth the better model
+  max_turns: 60                       # Claude Code's own internal turn budget
 ---
 
 The prompt for this stage is `config/sortie/prompts/plan.md`. This body is the fallback

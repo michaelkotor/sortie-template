@@ -101,9 +101,9 @@ if [[ -e $TARGET/AGENTS.md ]]; then
 
 ## Automated issue workflow
 
-Labelled issues are handled by OpenCode through Sortie. How that works, which labels
-drive it, and what this project never lets an agent decide alone:
-[`config/sortie/README.md`](config/sortie/README.md).
+Labelled issues are handled by Sortie, running Claude Code for planning and review and
+OpenCode for building. How that works, which labels drive it, and what this project never
+lets an agent decide alone: [`config/sortie/README.md`](config/sortie/README.md).
 POINTER
         printf '  appended a pointer to config/sortie/README.md in AGENTS.md\n'
     fi

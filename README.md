@@ -1,8 +1,8 @@
 # sortie-template
 
 A three-stage GitHub issue → reviewed pull request setup for
-[Sortie](https://github.com/sortie-ai/sortie), driving OpenCode on your own machine.
-Drop it into any repository.
+[Sortie](https://github.com/sortie-ai/sortie), driving Claude Code and OpenCode on your own
+machine. Drop it into any repository.
 
 ```bash
 ~/IdeaProjects/sortie-template/install.sh /path/to/your/repo
@@ -74,18 +74,25 @@ reproduce is itself a blocking finding.
 
 ## Why three processes
 
-Planning and review run on DeepSeek V4 Pro, building on DeepSeek V4 Flash. Sortie's dispatch
-rules can override the agent kind and the prompt template per rule, but not adapter config,
-so a per-stage model means a per-stage process. `scripts/sortie.sh run` starts all three,
-gives each its own database, workspace root, and port, and stops them together on Ctrl-C.
-Their label queries are disjoint, so none can pick up another's issues.
+Planning and review run on Claude Code, model `claude-opus-5` — the two passes where
+judgement matters most, and where the stronger model earns its keep. Building runs on
+OpenCode's free `deepseek-v4-flash-free`, which needs no key: it is the highest-volume stage,
+and doing it for free is the point. Sortie's dispatch rules can override the agent kind and
+the prompt template per rule, but not adapter config, so a per-stage model means a per-stage
+process. `scripts/sortie.sh run` starts all three, gives each its own database, workspace
+root, and port, and stops them together on Ctrl-C. Their label queries are disjoint, so none
+can pick up another's issues.
+
+If Claude Code itself is unavailable, Sortie retries that stage with backoff rather than
+falling back to a different tool — Sortie has no cross-adapter fallback, so a run either
+comes back on `claude-code` or keeps retrying.
 
 ## What gets installed
 
 ```
-config/sortie/WORKFLOW.plan.md    stage 1: DeepSeek V4 Pro, read-only, one turn
-config/sortie/WORKFLOW.build.md   stage 2: DeepSeek V4 Flash, branches and pushes
-config/sortie/WORKFLOW.review.md  stage 3: DeepSeek V4 Pro, verifies and judges the PR
+config/sortie/WORKFLOW.plan.md    stage 1: Claude Code (Opus), read-only, one turn
+config/sortie/WORKFLOW.build.md   stage 2: OpenCode (DeepSeek, free), branches and pushes
+config/sortie/WORKFLOW.review.md  stage 3: Claude Code (Opus), verifies and judges the PR
 config/sortie/prompts/*.md        what each stage is told
 config/sortie/README.md           how the pipeline works, for whoever reads the repo
 config/sortie/AUTONOMY.md         what a human must decide here — written once, never again
@@ -134,6 +141,6 @@ against.
 
 ## Requirements
 
-`sortie`, `gh`, and `opencode` on PATH, and an `opencode` you are signed in to (or a
-provider API key like `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` set, if you would rather bill
-the API).
+`sortie`, `gh`, `claude`, and `opencode` on PATH. Planning and review need a `claude` you are
+signed in to (`claude` → `/login`, Pro/Max subscription — or `ANTHROPIC_API_KEY` set, if you
+would rather bill the API). Building runs on OpenCode's free DeepSeek model and needs no key.

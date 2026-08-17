@@ -80,16 +80,17 @@ hooks:
   timeout_ms: 300000
 
 agent:
-  kind: opencode
-  command: opencode
+  kind: claude-code
+  command: claude
   max_turns: 1                    # verify, judge, post, route the label
   max_concurrent_agents: 1
   turn_timeout_ms: 1800000
   stall_timeout_ms: 300000
 
-opencode:
-  dangerously_skip_permissions: true
-  model: opencode/deepseek-v4-flash-free  # free OpenCode Zen model; runs without a key
+claude-code:
+  permission_mode: bypassPermissions
+  model: claude-opus-5            # the reviewer should be at least as strong as the planner
+  max_turns: 60
 ---
 
 The prompt for this stage is `config/sortie/prompts/review.md`. This body is the fallback

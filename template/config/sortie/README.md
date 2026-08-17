@@ -1,8 +1,13 @@
 # The automated issue workflow
 
-Labelled issues are handled by OpenCode through [Sortie](https://github.com/sortie-ai/sortie),
-in three stages, each its own process. `../../scripts/sortie.sh run` starts them; nothing
+Labelled issues are handled by [Sortie](https://github.com/sortie-ai/sortie), in three
+stages, each its own process. Planning and review run on Claude Code (Opus); building runs on
+OpenCode's free DeepSeek model. `../../scripts/sortie.sh run` starts all three; nothing
 happens to an issue that carries no label.
+
+If Claude Code itself is down or unreachable, Sortie retries the plan or review stage with
+backoff rather than switching to a different tool — Sortie has no cross-adapter fallback, so
+a stuck run stays on `claude-code` until it recovers.
 
 This file is installed by the template and refreshed when it is upgraded, so it stays
 accurate without anyone editing `AGENTS.md`. The one part that is yours to write lives in
