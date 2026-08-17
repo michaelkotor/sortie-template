@@ -98,23 +98,26 @@ change is never self-approved — that is the human's job, not yours.
 
 ## What to produce
 
-Write your plan to `.sortie/plan.md` using exactly these sections:
+Write your plan to `.sortie/plan.md` using exactly these sections.
+
+Write for someone who has just read the ticket: no preamble, no restating these
+instructions, no recap of what you read. Every sentence either changes the approve/reject
+call or comes out. Size the whole comment against an untrimmed write-up — about 90%
+smaller on a simple, well-scoped ticket, about 70% on anything bigger.
 
 ```markdown
-## Understanding
+## What and where
 
-One paragraph: what the ticket is asking for, in your own words.
-
-## How it fits the codebase
-
-Where this lands. Name the specific files and functions involved, and note any existing
-behaviour, convention, or design decision the change has to respect. Flag it here if the
-request cuts against one of the hard constraints in `AGENTS.md`.
+Two or three sentences: what the ticket asks for in your own words, and the specific
+files and functions it lands in. Then, only if there is one, the existing behaviour,
+convention, or `AGENTS.md` constraint the change has to respect — and flag it here if the
+request cuts against a hard one.
 
 ## Proposed implementation
 
 Numbered steps, each one concrete enough to act on. This is the contract the build stage
-will follow, so be specific.
+will follow, so be specific. One line per step where a line will do; no step that only
+says the obvious next thing.
 
 ## Files to touch
 
@@ -122,12 +125,13 @@ A table: file | change | why.
 
 ## Tests
 
-Which existing tests cover this area, what new cases are needed, and which fixtures or
-test data apply or need adding.
+Omit this section if the change has no behaviour in it. Otherwise: which existing tests
+cover this area, and what cases to add.
 
 ## Risks and trade-offs
 
-What could break, and any alternative worth considering.
+What could actually break, and one alternative if one is worth naming. Omit if there is
+neither.
 
 ## Open questions
 
