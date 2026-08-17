@@ -78,6 +78,14 @@ load_env() {
     source "$ENV_FILE" || die "could not read $ENV_FILE"
     set +a
 
+    # Auto-update is read here rather than beside LOG_LEVEL at the top of the script: .env
+    # is only sourced by load_env, and the top-of-file reads run before it. A read there
+    # would never see the switch. Defaults off — pulling and executing newly merged code
+    # on a working copy is opt-in.
+    AUTO_UPDATE=${SORTIE_AUTO_UPDATE:-off}
+    AUTO_UPDATE_INTERVAL=${SORTIE_AUTO_UPDATE_INTERVAL:-300}
+    [[ $AUTO_UPDATE_INTERVAL =~ ^[0-9]+$ ]] || AUTO_UPDATE_INTERVAL=300
+
     [[ -n ${SORTIE_GITHUB_TOKEN:-} ]] || die "SORTIE_GITHUB_TOKEN is empty in $ENV_FILE"
 
     # Where this project actually lives on disk. The agents work in clones of the remote,
@@ -262,7 +270,86 @@ run_all() {
             > >(awk -v s="$stage" '{ printf "[%-6s] %s\n", s, $0; fflush() }') 2>&1 &
         pids+=("$!")
     done
+
+    # With SORTIE_AUTO_UPDATE=on a fifth process watches upstream and restarts the stages
+    # when it moved. Its pid joins the array so the trap above kills it too.
+    if [[ $AUTO_UPDATE == on ]]; then
+        watch_upstream "${pids[@]}" &
+        pids+=("$!")
+    fi
     wait
+}
+
+# --------------------------------------------------------------------------- auto-update
+#
+# The stages load their workflow once at startup, so a merge to the code they run is not
+# live until someone restarts them. This watcher pulls the default branch, fast-forwards
+# when the tree is safe, and restarts the stages — but never on top of a live agent. It
+# only runs with SORTIE_AUTO_UPDATE=on; the default keeps the tree untouched.
+
+# watch_upstream <stage-pid...>
+# $@ is the pids of the four sortie processes, killed on restart. This function's own pid
+# is appended to run_all's pids array by its caller, so Ctrl-C kills it with the stages.
+watch_upstream() {
+    local stage_pids=("$@")
+    local default reason
+    while :; do
+        sleep "$AUTO_UPDATE_INTERVAL"
+
+        # Same derivation the build stage's after_run hook uses, so this agrees with it
+        # about which branch is the default.
+        default=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##')
+        [[ -n $default ]] || default=main
+        git fetch --quiet origin "$default" || continue
+        [[ $(git rev-parse HEAD) == "$(git rev-parse "origin/$default")" ]] && continue
+
+        # An issue mid-run must not be killed mid-turn, and a deferred update is re-checked
+        # next interval, so this is checked before anything is merged — afterwards HEAD
+        # would already match and the pending restart would never be noticed. One search
+        # call, because `gh issue list --label` ANDs its labels.
+        # Unknown count defers: a failed call means the safe assumption is that a stage is
+        # mid-run, since restarting on top of one is the failure mode this guard exists for.
+        local busy
+        busy=$(gh api -X GET search/issues \
+            -f q="repo:$REPO is:issue label:agent-planning,agent-building,agent-reviewing,agent-designing" \
+            --jq .total_count 2>/dev/null)
+        if [[ -z $busy || $busy -gt 0 ]]; then
+            printf 'sortie: update pending — %s issue(s) mid-run, will re-check\n' "${busy:-unknown}"
+            continue
+        fi
+
+        # Fast-forward only, and only when the tree is safe to move. -uno is load-bearing:
+        # in this repo the installed config/sortie/* and scripts/sortie.sh are untracked
+        # copies, so a plain --porcelain check would report dirty forever.
+        reason=""
+        [[ $(git symbolic-ref --short HEAD 2>/dev/null || echo detached) == "$default" ]] \
+            || reason="HEAD is on $(git symbolic-ref --short HEAD 2>/dev/null || echo detached), not $default"
+        [[ -n $reason || -z $(git status --porcelain -uno) ]] || reason="the working tree has uncommitted tracked changes"
+        if [[ -n $reason ]]; then
+            printf 'sortie: update available but %s — leaving the tree alone\n' "$reason"
+            continue
+        fi
+
+        git merge --ff-only origin/"$default" 2>/dev/null \
+            || { printf 'sortie: fast-forward to %s failed\n' "$default"; continue; }
+        printf 'sortie: pulled %s — restarting the stages\n' "$(git rev-parse --short HEAD)"
+
+        # Kill the stages first so the install and the exec below are adjacent. install.sh
+        # --force overwrites scripts/sortie.sh, which is what is running; bash reads a
+        # script by file offset, so nothing may be read from it between the rewrite and
+        # the exec. The exec line is already parsed (it is part of this loop body), so
+        # leaving only the exec after the install keeps the window to zero.
+        kill "${stage_pids[@]}" 2>/dev/null
+
+        # sortie-template installed into itself: the files the stages read are install.sh's
+        # copies, so a merge to template/ changes nothing on disk until --force re-installs.
+        # Ordinary target repos have no template/ and skip this.
+        if [[ -d template && -f install.sh ]]; then
+            ./install.sh . --force
+        fi
+
+        exec "$0" run
+    done
 }
 
 run() {
