@@ -9,7 +9,10 @@ label.
 
 If Claude Code itself is down or unreachable, Sortie retries whichever of plan, review, or
 design hit it with backoff rather than switching to a different tool — Sortie has no
-cross-adapter fallback, so a stuck run stays on `claude-code` until it recovers.
+cross-adapter fallback, so a stuck run stays on `claude-code` until it recovers. A failed
+run always waits double the last one, 10s → 20s → 40s → 80s → 160s → 320s → …, up to a
+30-minute cap, and a stage gives an issue up after ten failed runs instead of retrying it
+forever.
 
 This file is installed by the template and refreshed when it is upgraded, so it stays
 accurate without anyone editing `AGENTS.md`. The one part that is yours to write lives in

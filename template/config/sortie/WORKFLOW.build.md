@@ -93,6 +93,8 @@ agent:
   max_concurrent_agents: 1
   turn_timeout_ms: 1800000        # 30 min
   stall_timeout_ms: 300000
+  max_sessions: 10                # give up after ten failed runs, not retry forever
+  max_retry_backoff_ms: 1800000   # 30 min cap — waits double per failed run, 10s → … → 160s → 320s → … → 30m
 
 opencode:
   dangerously_skip_permissions: true
