@@ -1,6 +1,6 @@
 # The automated issue workflow
 
-Labelled issues are handled by Claude Code through [Sortie](https://github.com/sortie-ai/sortie),
+Labelled issues are handled by OpenCode through [Sortie](https://github.com/sortie-ai/sortie),
 in three stages, each its own process. `../../scripts/sortie.sh run` starts them; nothing
 happens to an issue that carries no label.
 
@@ -47,9 +47,9 @@ To turn a shortcut off:
 ## The files here
 
 ```
-WORKFLOW.plan.md    stage 1: Opus, read-only, one turn
-WORKFLOW.build.md   stage 2: Sonnet, branches and pushes
-WORKFLOW.review.md  stage 3: Opus, verifies and judges the PR
+WORKFLOW.plan.md    stage 1: plan, read-only, one turn
+WORKFLOW.build.md   stage 2: build, branches and pushes
+WORKFLOW.review.md  stage 3: review, verifies and judges the PR
 prompts/*.md        what each stage is told
 AUTONOMY.md         what this project never lets an agent decide alone — yours to write
 env.example         the token, the switches, and where to get them

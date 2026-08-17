@@ -19,9 +19,10 @@
 # SORTIE_AUTO_APPROVE_PLANS=off / SORTIE_AUTO_SKIP_REVIEW=off in config/sortie/.env to
 # disable them everywhere.
 #
-# The stages are three Sortie processes because they run different models — planning and
-# review on Opus, building on Sonnet — and Sortie has no per-dispatch-rule model setting.
-# They keep separate databases, workspaces, and ports, and their label queries are
+# The stages are three Sortie processes because Sortie has no per-dispatch-rule model
+# setting, and the stages are meant to be able to run different models. All three run
+# opencode/deepseek-v4-flash-free here, the free OpenCode Zen DeepSeek model that needs no
+# API key. They keep separate databases, workspaces, and ports, and their label queries are
 # disjoint, so none can pick up another's issues.
 
 set -uo pipefail
@@ -29,10 +30,13 @@ cd "$(dirname "$0")/.." || exit 3
 
 ENV_FILE=config/sortie/.env
 STAGES=(plan build review)
-# Sortie's own log verbosity: debug, info, warn, error. `warn` leaves you the things that
-# need you — failures, retries, escalations — and drops the once-a-minute poll chatter from
-# three processes. It does not touch what the agents themselves print.
-LOG_LEVEL=${SORTIE_LOG_LEVEL:-info}
+# Sortie's own log verbosity: debug, info, warn, error. Previous runs kept an opaque
+# `turn_failed` even when opencode's error was a mask over something actionable — sortie
+# recovers the real reason ("Model not found: ...", rate limit, auth) only at debug level.
+# So this defaults to debug: failures get to explain themselves. If the once-a-minute poll
+# chatter from three processes bothers you, SORTIE_LOG_LEVEL=warn keeps failures and
+# retries and nothing else. It does not touch what the agents themselves print.
+LOG_LEVEL=${SORTIE_LOG_LEVEL:-debug}
 PLAN_PORT=${SORTIE_PLAN_PORT:-7678}
 BUILD_PORT=${SORTIE_BUILD_PORT:-7679}
 REVIEW_PORT=${SORTIE_REVIEW_PORT:-7680}
@@ -45,7 +49,7 @@ die() { printf 'sortie: %s\n' "$1" >&2; exit 1; }
 
 # --------------------------------------------------------------------------- environment
 #
-# Sortie's hooks only inherit SORTIE_*-prefixed variables, and the Claude Code subprocess
+# Sortie's hooks only inherit SORTIE_*-prefixed variables, and the OpenCode subprocess
 # inherits whatever this process holds. So everything is exported here rather than handed
 # to `sortie --env-file`, which feeds config overrides only and not the agent's shell.
 
@@ -121,7 +125,7 @@ preflight() {
                                     # caller's variable of the same name
     require sortie 'curl -sSL https://get.sortie-ai.com/install.sh | sh'
     require gh     'brew install gh'
-    require claude 'https://claude.com/claude-code'
+    require opencode 'https://opencode.ai'
     for stage in "${STAGES[@]}"; do
         [[ -f $(workflow_for "$stage") ]] || die "missing $(workflow_for "$stage")"
     done
@@ -193,13 +197,13 @@ setup() {
 
 Ready. Start all three stages with 'run' and leave them going; then, on any issue:
 
-  label 'agent-plan'      → Opus comments a plan. It hands back as 'agent-review' for you
-                            to approve, unless it judges the ticket small and unambiguous
-                            enough to self-approve — then it goes straight on
-  label 'plan-approved'   → Sonnet implements it and opens a PR. A trivial diff comes
-                            straight back to you as 'agent-review'; anything else goes to
-                            the reviewer (Opus), which approves it — back to you — or
-                            sends it round again, at most twice
+  label 'agent-plan'      → the agent comments a plan. It hands back as 'agent-review'
+                            for you to approve, unless it judges the ticket small and
+                            unambiguous enough to self-approve — then it goes straight on
+  label 'plan-approved'   → the agent implements it and opens a PR. A trivial diff
+                            comes straight back to you as 'agent-review'; anything else goes
+                            to the reviewer, which approves it — back to you — or sends it
+                            round again, at most twice
 
   label 'needs-human'     → that issue gets neither shortcut: you approve the plan, and
                             the PR is always reviewed
@@ -267,9 +271,9 @@ run() {
     for stage in "${STAGES[@]}"; do require_free_port "$stage" "$(port_for "$stage")"; done
 
     printf 'Watching %s. Ctrl-C to stop all three stages.\n' "$REPO"
-    printf '  plan    agent-plan         → Opus     http://127.0.0.1:%s/\n' "$PLAN_PORT"
-    printf '  build   plan-approved      → Sonnet   http://127.0.0.1:%s/\n' "$BUILD_PORT"
-    printf '  review  needs-code-review  → Opus     http://127.0.0.1:%s/\n\n' "$REVIEW_PORT"
+    printf '  plan    agent-plan         → plan         http://127.0.0.1:%s/\n' "$PLAN_PORT"
+    printf '  build   plan-approved      → build        http://127.0.0.1:%s/\n' "$BUILD_PORT"
+    printf '  review  needs-code-review  → review       http://127.0.0.1:%s/\n\n' "$REVIEW_PORT"
     run_all
 }
 

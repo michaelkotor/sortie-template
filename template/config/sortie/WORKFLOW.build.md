@@ -1,5 +1,6 @@
 ---
-# Stage 2 of 3 — building, on Sonnet. Sits between WORKFLOW.plan.md and WORKFLOW.review.md.
+# Stage 2 of 3 — building. Sits between WORKFLOW.plan.md and WORKFLOW.review.md. All three
+# stages run on opencode/deepseek-v4-flash-free, the free OpenCode Zen DeepSeek model.
 #
 # Label an issue `plan-approved` — or let the planning stage self-approve one — and the
 # agent implements the plan it posted earlier, verifies it, pushes a branch, and opens a
@@ -84,18 +85,16 @@ hooks:
   timeout_ms: 120000
 
 agent:
-  kind: claude-code
-  command: claude
+  kind: opencode
+  command: opencode
   max_turns: 8                    # implement, verify, fix, push, open the PR
   max_concurrent_agents: 1
   turn_timeout_ms: 1800000        # 30 min
   stall_timeout_ms: 300000
 
-claude-code:
-  permission_mode: bypassPermissions
-  model: claude-sonnet-5              # the plan is already made; this is execution
-  # max_budget_usd: 5                 # only meaningful on API-key billing
-  max_turns: 60
+opencode:
+  dangerously_skip_permissions: true
+  model: opencode/deepseek-v4-flash-free  # free OpenCode Zen model; runs without a key
 ---
 
 The prompt for this stage is `config/sortie/prompts/build.md`. This body is the fallback

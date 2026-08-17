@@ -1,7 +1,7 @@
 # sortie-template
 
 A three-stage GitHub issue → reviewed pull request setup for
-[Sortie](https://github.com/sortie-ai/sortie), driving Claude Code on your own machine.
+[Sortie](https://github.com/sortie-ai/sortie), driving OpenCode on your own machine.
 Drop it into any repository.
 
 ```bash
@@ -74,18 +74,18 @@ reproduce is itself a blocking finding.
 
 ## Why three processes
 
-Planning and review run on Opus, building on Sonnet. Sortie's dispatch rules can override
-the agent kind and the prompt template per rule, but not adapter config, so a per-stage
-model means a per-stage process. `scripts/sortie.sh run` starts all three, gives each its
-own database, workspace root, and port, and stops them together on Ctrl-C. Their label
-queries are disjoint, so none can pick up another's issues.
+Planning and review run on DeepSeek V4 Pro, building on DeepSeek V4 Flash. Sortie's dispatch
+rules can override the agent kind and the prompt template per rule, but not adapter config,
+so a per-stage model means a per-stage process. `scripts/sortie.sh run` starts all three,
+gives each its own database, workspace root, and port, and stops them together on Ctrl-C.
+Their label queries are disjoint, so none can pick up another's issues.
 
 ## What gets installed
 
 ```
-config/sortie/WORKFLOW.plan.md    stage 1: Opus, read-only, one turn
-config/sortie/WORKFLOW.build.md   stage 2: Sonnet, branches and pushes
-config/sortie/WORKFLOW.review.md  stage 3: Opus, verifies and judges the PR
+config/sortie/WORKFLOW.plan.md    stage 1: DeepSeek V4 Pro, read-only, one turn
+config/sortie/WORKFLOW.build.md   stage 2: DeepSeek V4 Flash, branches and pushes
+config/sortie/WORKFLOW.review.md  stage 3: DeepSeek V4 Pro, verifies and judges the PR
 config/sortie/prompts/*.md        what each stage is told
 config/sortie/README.md           how the pipeline works, for whoever reads the repo
 config/sortie/AUTONOMY.md         what a human must decide here — written once, never again
@@ -134,5 +134,6 @@ against.
 
 ## Requirements
 
-`sortie`, `gh`, and `claude` on PATH, and a `claude` you are signed in to (or
-`ANTHROPIC_API_KEY` set, if you would rather bill the API).
+`sortie`, `gh`, and `opencode` on PATH, and an `opencode` you are signed in to (or a
+provider API key like `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` set, if you would rather bill
+the API).

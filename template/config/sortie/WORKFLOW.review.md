@@ -1,7 +1,7 @@
 ---
-# Stage 3 of 3 — reviewing, on Opus. Runs on the pull request the build stage opened, when
-# the build stage judged that it needs reviewing at all — a trivial diff is sent straight to
-# you instead, and this stage never sees it.
+# Stage 3 of 3 — reviewing. Runs on the pull request the build stage opened, when the build
+# stage judged that it needs reviewing at all — a trivial diff is sent straight to you
+# instead, and this stage never sees it.
 #
 # The build stage hands the issue over labelled `needs-code-review`. This stage checks out
 # the PR branch, re-runs the project's own verification commands, reads the diff against
@@ -80,17 +80,16 @@ hooks:
   timeout_ms: 300000
 
 agent:
-  kind: claude-code
-  command: claude
+  kind: opencode
+  command: opencode
   max_turns: 1                    # verify, judge, post, route the label
   max_concurrent_agents: 1
   turn_timeout_ms: 1800000
   stall_timeout_ms: 300000
 
-claude-code:
-  permission_mode: bypassPermissions
-  model: claude-opus-5            # the reviewer should be at least as strong as the planner
-  max_turns: 60
+opencode:
+  dangerously_skip_permissions: true
+  model: opencode/deepseek-v4-flash-free  # free OpenCode Zen model; runs without a key
 ---
 
 The prompt for this stage is `config/sortie/prompts/review.md`. This body is the fallback
