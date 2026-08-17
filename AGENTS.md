@@ -34,7 +34,7 @@ substituted at copy time. See [README.md](README.md) for what the installed pipe
 | --- | --- |
 | `install.sh` | Copies `template/*` into a target repo. Read this first — it's the whole install logic. |
 | `template/AGENTS.md.example` | Skeleton `AGENTS.md` offered to a target repo that has none. |
-| `template/config/sortie/WORKFLOW.*.md` | The three Sortie workflow definitions (plan, build, review). |
+| `template/config/sortie/WORKFLOW.*.md` | The Sortie workflow definitions (plan, build, review, and the separate design track). |
 | `template/config/sortie/prompts/*.md` | What each stage is told. |
 | `template/config/sortie/README.md` | The one place the pipeline itself is documented — for whoever reads an installed repo. |
 | `template/config/sortie/AUTONOMY.md.example` | Skeleton for the autonomy decisions a target repo has to make once. |

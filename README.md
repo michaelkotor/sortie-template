@@ -1,6 +1,6 @@
 # sortie-template
 
-A three-stage GitHub issue → reviewed pull request setup for
+A four-stage GitHub issue → reviewed pull request setup for
 [Sortie](https://github.com/sortie-ai/sortie), driving Claude Code and OpenCode on your own
 machine. Drop it into any repository.
 
@@ -18,15 +18,16 @@ merges without you.
 | label `agent-plan` | reads the issue and the code, posts an implementation plan | issue relabelled `agent-review`, plan in a comment |
 | label `plan-approved` | implements that plan, verifies it, pushes a branch, opens a PR | issue relabelled `needs-code-review`, which wakes the reviewer |
 | *(nothing — automatic)* | a second agent re-runs your verification commands and reads the diff against the plan | either an approving review and `agent-review` for you to merge, or a list of what to change and another build round |
+| label `system-design` | reads the issue and the code, posts a design analysis: the problem, the options, and whether the work is worth doing at all | issue relabelled `agent-review`, analysis in a comment — nothing is implemented |
 
 Reply on the issue before approving and your comment is folded in as an additional
 requirement — it adds to the plan rather than replacing it. Re-add `agent-plan` for a
 fresh plan instead.
 
 While a stage is working, the issue says so. Dispatch replaces the trigger label with
-`agent-planning`, `agent-building`, or `agent-reviewing`, and the stage puts the next label
-on when it finishes — so a label is never just "queued or running, no way to tell", and an
-issue that has sat in `agent-building` for an hour is a run that died.
+`agent-planning`, `agent-building`, `agent-reviewing`, or `agent-designing`, and the stage
+puts the next label on when it finishes — so a label is never just "queued or running, no
+way to tell", and an issue that has sat in `agent-building` for an hour is a run that died.
 
 ## The steps it skips
 
@@ -72,20 +73,20 @@ unless you give the reviewer its own account. And the reviewer *runs* your verif
 commands rather than trusting the PR body — a PR claiming green checks that do not
 reproduce is itself a blocking finding.
 
-## Why three processes
+## Why four processes
 
-Planning and review run on Claude Code, model `claude-opus-5` — the two passes where
+Plan, review, and design run on Claude Code, model `claude-opus-5` — the three passes where
 judgement matters most, and where the stronger model earns its keep. Building runs on
 OpenCode's free `deepseek-v4-flash-free`, which needs no key: it is the highest-volume stage,
 and doing it for free is the point. Sortie's dispatch rules can override the agent kind and
 the prompt template per rule, but not adapter config, so a per-stage model means a per-stage
-process. `scripts/sortie.sh run` starts all three, gives each its own database, workspace
+process. `scripts/sortie.sh run` starts all four, gives each its own database, workspace
 root, and port, and stops them together on Ctrl-C. Their label queries are disjoint, so none
 can pick up another's issues.
 
-If Claude Code itself is unavailable, Sortie retries that stage with backoff rather than
-falling back to a different tool — Sortie has no cross-adapter fallback, so a run either
-comes back on `claude-code` or keeps retrying.
+If Claude Code itself is unavailable, Sortie retries whichever stage hit it with backoff
+rather than falling back to a different tool — Sortie has no cross-adapter fallback, so a
+run either comes back on `claude-code` or keeps retrying.
 
 ## What gets installed
 
@@ -93,6 +94,7 @@ comes back on `claude-code` or keeps retrying.
 config/sortie/WORKFLOW.plan.md    stage 1: Claude Code (Opus), read-only, one turn
 config/sortie/WORKFLOW.build.md   stage 2: OpenCode (DeepSeek, free), branches and pushes
 config/sortie/WORKFLOW.review.md  stage 3: Claude Code (Opus), verifies and judges the PR
+config/sortie/WORKFLOW.design.md  separate track: Claude Code (Opus), read-only design analysis
 config/sortie/prompts/*.md        what each stage is told
 config/sortie/README.md           how the pipeline works, for whoever reads the repo
 config/sortie/AUTONOMY.md         what a human must decide here — written once, never again
@@ -141,6 +143,7 @@ against.
 
 ## Requirements
 
-`sortie`, `gh`, `claude`, and `opencode` on PATH. Planning and review need a `claude` you are
-signed in to (`claude` → `/login`, Pro/Max subscription — or `ANTHROPIC_API_KEY` set, if you
-would rather bill the API). Building runs on OpenCode's free DeepSeek model and needs no key.
+`sortie`, `gh`, `claude`, and `opencode` on PATH. Plan, review, and design need a `claude`
+you are signed in to (`claude` → `/login`, Pro/Max subscription — or `ANTHROPIC_API_KEY` set,
+if you would rather bill the API). Building runs on OpenCode's free DeepSeek model and needs
+no key.
