@@ -53,6 +53,18 @@ To turn a shortcut off:
 - set `SORTIE_AUTO_APPROVE_PLANS=off` or `SORTIE_AUTO_SKIP_REVIEW=off` in `.env` — that
   shortcut is off everywhere
 
+## Picking up changes
+
+Each stage loads its workflow once at startup, so a merge to the code they run is not
+live until the stages restart. With `SORTIE_AUTO_UPDATE=on` in `.env` (off by default),
+`sortie.sh run` pulls the default branch every `SORTIE_AUTO_UPDATE_INTERVAL` seconds
+(default 300), fast-forwards when the tree is clean and HEAD is already on the default
+branch, re-runs `./install.sh --force` when this repo was itself installed from the
+template (the installed copies under `config/sortie/` and `scripts/` are only refreshed by
+the installer), and restarts the stages. It never pulls onto a dirty tree or a non-default
+branch, and never restarts while an issue is mid-run — a restart would kill the agent
+working it. To stop auto-update, set `SORTIE_AUTO_UPDATE=off`.
+
 ## The files here
 
 ```
