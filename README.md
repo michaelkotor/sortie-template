@@ -15,10 +15,10 @@ merges without you.
 
 | You do | The agent does | You get back |
 | --- | --- | --- |
-| label `system-design` | reads the issue and the code, posts a design analysis: the problem, the options, and whether the work is worth doing at all | issue relabelled `agent-review`, analysis in a comment — nothing is implemented |
 | label `agent-plan` | reads the issue and the code, posts an implementation plan | issue relabelled `agent-review`, plan in a comment |
 | label `plan-approved` | implements that plan, verifies it, pushes a branch, opens a PR | issue relabelled `needs-code-review`, which wakes the reviewer |
 | *(nothing — automatic)* | a second agent re-runs your verification commands and reads the diff against the plan | either an approving review and `agent-review` for you to merge, or a list of what to change and another build round |
+| label `system-design` | reads the issue and the code, posts a design analysis: the problem, the options, and whether the work is worth doing at all | issue relabelled `agent-review`, analysis in a comment — nothing is implemented |
 
 Reply on the issue before approving and your comment is folded in as an additional
 requirement — it adds to the plan rather than replacing it. Re-add `agent-plan` for a
@@ -76,13 +76,13 @@ reproduce is itself a blocking finding.
 ## Why four processes
 
 Plan, build, and review all run on `opencode/deepseek-v4-flash-free`, the free OpenCode Zen
-DeepSeek model that needs no API key. Design runs on Anthropic's Claude Opus instead
-(`anthropic/claude-opus-5`) — thinking is its deliverable, so it is the one stage that bills
-real money. Sortie's dispatch rules can override the agent kind and the prompt template per
-rule, but not adapter config, so a per-stage model means a per-stage process.
-`scripts/sortie.sh run` starts all four, gives each its own database, workspace root, and
-port, and stops them together on Ctrl-C. Their label queries are disjoint, so none can pick
-up another's issues.
+DeepSeek model that needs no API key. Design runs the Sortie `claude-code` adapter on
+Anthropic's Claude Opus (`claude --model opus`) — thinking is its deliverable, so it is the
+one stage that bills real money and the one that needs a Claude Code sign-in. Sortie's
+dispatch rules can override the agent kind and the prompt template per rule, but not
+adapter config, so a per-stage model means a per-stage process. `scripts/sortie.sh run`
+starts all four, gives each its own database, workspace root, and port, and stops them
+together on Ctrl-C. Their label queries are disjoint, so none can pick up another's issues.
 
 ## What gets installed
 
@@ -141,4 +141,4 @@ against.
 
 `sortie`, `gh`, and `opencode` on PATH, and an `opencode` you are signed in to (or a
 provider API key like `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` set, if you would rather bill
-the API).
+the API). Running the design stage also needs `claude` (Claude Code) on PATH, signed in.

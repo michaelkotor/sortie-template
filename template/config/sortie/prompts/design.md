@@ -99,7 +99,7 @@ a later reader finds this analysis.
 
 Append this to the end of the comment before posting:
 
-> _Design analysis by OpenCode via Sortie. Nothing has been implemented._
+> _Design analysis by Claude Code via Sortie. Nothing has been implemented._
 > _To proceed, label the issue `agent-plan`; to revise the analysis, reply here and re-add
 > `system-design`._
 

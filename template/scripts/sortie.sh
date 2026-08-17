@@ -1,11 +1,11 @@
 #!/bin/bash
 # sortie - turn GitHub issues into plans, and approved plans into pull requests.
 #
-#   ./scripts/sortie.sh setup                 create the labels, check credentials
-#   ./scripts/sortie.sh check                 validate and poll once, changing nothing
-#   ./scripts/sortie.sh run                   run all four stages (Ctrl-C stops them)
+#   ./scripts/sortie.sh setup                      create the labels, check credentials
+#   ./scripts/sortie.sh check                      validate and poll once, changing nothing
+#   ./scripts/sortie.sh run                        run all four stages (Ctrl-C stops them)
 #   ./scripts/sortie.sh run plan|build|review|design run one stage on its own
-#   ./scripts/sortie.sh stats [stage]         summarise past runs
+#   ./scripts/sortie.sh stats [stage]              summarise past runs
 #
 # Label an issue `agent-plan` and the agent comments an implementation plan. Approve it by
 # labelling `plan-approved` and the agent implements it and opens a PR. A reviewer then
@@ -22,10 +22,10 @@
 # The stages are four Sortie processes because Sortie has no per-dispatch-rule model
 # setting, and the stages are meant to be able to run different models. Plan, build, and
 # review run opencode/deepseek-v4-flash-free here, the free OpenCode Zen DeepSeek model
-# that needs no API key. Design runs on Anthropic's Opus instead and needs an opencode
-# sign-in with Anthropic access or an ANTHROPIC_API_KEY — see env.example. They keep
-# separate databases, workspaces, and ports, and their label queries are disjoint, so none
-# can pick up another's issues.
+# that needs no API key. Design runs the claude-code adapter on Anthropic's Opus instead
+# and needs a Claude Code sign-in on this machine (`claude` on PATH) — see env.example.
+# They keep separate databases, workspaces, and ports, and their label queries are
+# disjoint, so none can pick up another's issues.
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 3
@@ -202,7 +202,7 @@ setup() {
 
 Ready. Start all four stages with 'run' and leave them going; then, on any issue:
 
-  label 'system-design'  → the agent comments a design analysis — the problem, the options,
+  label 'system-design'   → the agent comments a design analysis — the problem, the options,
                             and whether it is worth doing. It always hands back as
                             'agent-review' for you to read
   label 'agent-plan'      → the agent comments a plan. It hands back as 'agent-review'
@@ -280,7 +280,7 @@ run() {
     for stage in "${STAGES[@]}"; do require_free_port "$stage" "$(port_for "$stage")"; done
 
     printf 'Watching %s. Ctrl-C to stop all four stages.\n' "$REPO"
-    printf '  design  system-design     → design        http://127.0.0.1:%s/\n' "$DESIGN_PORT"
+    printf '  design  system-design      → design        http://127.0.0.1:%s/\n' "$DESIGN_PORT"
     printf '  plan    agent-plan         → plan          http://127.0.0.1:%s/\n' "$PLAN_PORT"
     printf '  build   plan-approved      → build         http://127.0.0.1:%s/\n' "$BUILD_PORT"
     printf '  review  needs-code-review  → review        http://127.0.0.1:%s/\n\n' "$REVIEW_PORT"

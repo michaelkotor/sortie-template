@@ -8,9 +8,10 @@
 # This is the one stage that does not run free. The other three run
 # opencode/deepseek-v4-flash-free, the free OpenCode Zen DeepSeek model that needs no API
 # key. Design runs on Anthropic's Opus instead — thinking is the deliverable, so it is told
-# to read more and given long timeouts, and it bills real money. It needs an opencode
-# sign-in with Anthropic access, or ANTHROPIC_API_KEY set (see env.example). The cost caps
-# below are the only thing between a runaway run and a real bill.
+# to read more and given long timeouts, and it bills real money. It needs a Claude Code
+# sign-in on the machine running the stage (see env.example), which for this stage is on
+# PATH as `claude` in addition to `sortie`, `gh`, and `opencode`. The cost caps below are
+# the only thing between a runaway run and a real bill.
 #
 # The stages are separate files because Sortie's dispatch rules can override the agent kind
 # and the prompt template per rule, but not adapter config — so a per-stage model means a
@@ -76,16 +77,16 @@ hooks:
   timeout_ms: 120000
 
 agent:
-  kind: opencode
-  command: opencode
+  kind: claude-code
+  command: claude
   max_turns: 3                    # read widely, then write and post — more than planning's 1
   max_concurrent_agents: 1
   turn_timeout_ms: 3600000        # 1 h — thinking is the deliverable, so it is allowed to be expensive
   stall_timeout_ms: 600000        # 10 min of silence = stalled
 
-opencode:
+claude-code:
   dangerously_skip_permissions: true  # required headless; the workspace is disposable
-  model: anthropic/claude-opus-5      # paid Anthropic model; needs sign-in or ANTHROPIC_API_KEY
+  model: opus                         # paid Anthropic model; needs a Claude Code sign-in
 ---
 
 The prompt for this stage is `config/sortie/prompts/design.md`. This body is the fallback

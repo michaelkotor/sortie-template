@@ -13,10 +13,10 @@ accurate without anyone editing `AGENTS.md`. The one part that is yours to write
 
 | Label | What happens | Where it goes |
 | --- | --- | --- |
-| `system-design` | reads the issue and the code, comments a design analysis: the problem, the options, and whether it is worth doing at all. Runs on Claude Opus — the one paid stage — and never implements anything | `agent-review` for you to read; if you decide to proceed, label `agent-plan` yourself |
 | `agent-plan` | reads the issue and the code, comments an implementation plan | `agent-review` for you to approve — or straight to `plan-approved`, if the planner judged the ticket small and unambiguous |
 | `plan-approved` | implements that plan, verifies it, pushes a branch, opens a PR | `needs-code-review` — or straight to `agent-review`, if the diff was trivial and verified |
 | `needs-code-review` | a second agent re-runs the verification and reads the diff against the plan | `agent-review` when it approves, `plan-approved` for another build round, at most twice |
+| `system-design` | reads the issue and the code, comments a design analysis: the problem, the options, and whether it is worth doing at all. Runs on Claude Opus — the one paid stage — and never implements anything | `agent-review` for you to read; if you decide to proceed, label `agent-plan` yourself |
 
 `agent-review` means the issue is waiting on a human. `agent-done` releases the agent's
 claim on it.
