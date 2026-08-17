@@ -1,11 +1,11 @@
 #!/bin/bash
 # sortie - turn GitHub issues into plans, and approved plans into pull requests.
 #
-#   ./scripts/sortie.sh setup                 create the labels, check credentials
-#   ./scripts/sortie.sh check                 validate and poll once, changing nothing
-#   ./scripts/sortie.sh run                   run all three stages (Ctrl-C stops them)
-#   ./scripts/sortie.sh run plan|build|review run one stage on its own
-#   ./scripts/sortie.sh stats [stage]         summarise past runs
+#   ./scripts/sortie.sh setup                      create the labels, check credentials
+#   ./scripts/sortie.sh check                      validate and poll once, changing nothing
+#   ./scripts/sortie.sh run                        run all four stages (Ctrl-C stops them)
+#   ./scripts/sortie.sh run plan|build|review|design run one stage on its own
+#   ./scripts/sortie.sh stats [stage]              summarise past runs
 #
 # Label an issue `agent-plan` and the agent comments an implementation plan. Approve it by
 # labelling `plan-approved` and the agent implements it and opens a PR. A reviewer then
@@ -19,31 +19,34 @@
 # SORTIE_AUTO_APPROVE_PLANS=off / SORTIE_AUTO_SKIP_REVIEW=off in config/sortie/.env to
 # disable them everywhere.
 #
-# The stages are three Sortie processes because Sortie has no per-dispatch-rule model
-# setting, and the stages are meant to be able to run different models. All three run
-# opencode/deepseek-v4-flash-free here, the free OpenCode Zen DeepSeek model that needs no
-# API key. They keep separate databases, workspaces, and ports, and their label queries are
+# The stages are four Sortie processes because Sortie has no per-dispatch-rule model
+# setting, and the stages are meant to be able to run different models. Plan, build, and
+# review run opencode/deepseek-v4-flash-free here, the free OpenCode Zen DeepSeek model
+# that needs no API key. Design runs the claude-code adapter on Anthropic's Opus instead
+# and needs a Claude Code sign-in on this machine (`claude` on PATH) — see env.example.
+# They keep separate databases, workspaces, and ports, and their label queries are
 # disjoint, so none can pick up another's issues.
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 3
 
 ENV_FILE=config/sortie/.env
-STAGES=(plan build review)
+STAGES=(plan build review design)
 # Sortie's own log verbosity: debug, info, warn, error. Previous runs kept an opaque
 # `turn_failed` even when opencode's error was a mask over something actionable — sortie
 # recovers the real reason ("Model not found: ...", rate limit, auth) only at debug level.
 # So this defaults to debug: failures get to explain themselves. If the once-a-minute poll
-# chatter from three processes bothers you, SORTIE_LOG_LEVEL=warn keeps failures and
+# chatter from four processes bothers you, SORTIE_LOG_LEVEL=warn keeps failures and
 # retries and nothing else. It does not touch what the agents themselves print.
 LOG_LEVEL=${SORTIE_LOG_LEVEL:-debug}
 PLAN_PORT=${SORTIE_PLAN_PORT:-7678}
 BUILD_PORT=${SORTIE_BUILD_PORT:-7679}
 REVIEW_PORT=${SORTIE_REVIEW_PORT:-7680}
+DESIGN_PORT=${SORTIE_DESIGN_PORT:-7681}
 
 workflow_for() { printf 'config/sortie/WORKFLOW.%s.md' "$1"; }
-port_for()     { case $1 in plan) printf '%s' "$PLAN_PORT" ;; build) printf '%s' "$BUILD_PORT" ;; review) printf '%s' "$REVIEW_PORT" ;; esac; }
-trigger_for()  { case $1 in plan) printf 'agent-plan' ;; build) printf 'plan-approved' ;; review) printf 'needs-code-review' ;; esac; }
+port_for()     { case $1 in plan) printf '%s' "$PLAN_PORT" ;; build) printf '%s' "$BUILD_PORT" ;; review) printf '%s' "$REVIEW_PORT" ;; design) printf '%s' "$DESIGN_PORT" ;; esac; }
+trigger_for()  { case $1 in plan) printf 'agent-plan' ;; build) printf 'plan-approved' ;; review) printf 'needs-code-review' ;; design) printf 'system-design' ;; esac; }
 
 die() { printf 'sortie: %s\n' "$1" >&2; exit 1; }
 
@@ -148,6 +151,8 @@ ensure_labels() {
     local specs=(
         'agent-plan|0e8a16|Ask the agent to propose an implementation plan'
         'agent-planning|c2e0c6|A planning agent has this right now'
+        'system-design|1d76db|Ask the agent for a design analysis — problem, options, whether it is worth doing'
+        'agent-designing|c5def5|A design agent has this right now'
         'plan-approved|0052cc|Plan approved — the agent may implement it and open a PR'
         'agent-building|bfd4f2|A build agent has this right now'
         'needs-code-review|d4c5f9|Pull request open — waiting on the review stage'
@@ -191,12 +196,15 @@ setup() {
         printf '  ok       %s\n' "$(workflow_for "$stage")"
     done
 
-    [[ -f AGENTS.md ]] || printf '\nNote: no AGENTS.md in the repository root. All three prompts read it for\n  project constraints and verification commands. Write one before relying on this.\n'
+    [[ -f AGENTS.md ]] || printf '\nNote: no AGENTS.md in the repository root. All four prompts read it for\n  project constraints and verification commands. Write one before relying on this.\n'
 
     cat <<EOF
 
-Ready. Start all three stages with 'run' and leave them going; then, on any issue:
+Ready. Start all four stages with 'run' and leave them going; then, on any issue:
 
+  label 'system-design'   → the agent comments a design analysis — the problem, the options,
+                            and whether it is worth doing. It always hands back as
+                            'agent-review' for you to read
   label 'agent-plan'      → the agent comments a plan. It hands back as 'agent-review'
                             for you to approve, unless it judges the ticket small and
                             unambiguous enough to self-approve — then it goes straight on
@@ -209,7 +217,8 @@ Ready. Start all three stages with 'run' and leave them going; then, on any issu
                             the PR is always reviewed
 
 While a stage has an issue, the issue says so: the trigger label is replaced by
-'agent-planning', 'agent-building', or 'agent-reviewing' for as long as that agent runs.
+'agent-planning', 'agent-building', 'agent-reviewing', or 'agent-designing' for as long as
+that agent runs.
 
 Set SORTIE_AUTO_APPROVE_PLANS=off or SORTIE_AUTO_SKIP_REVIEW=off in $ENV_FILE to turn a
 shortcut off everywhere.
@@ -270,10 +279,11 @@ run() {
 
     for stage in "${STAGES[@]}"; do require_free_port "$stage" "$(port_for "$stage")"; done
 
-    printf 'Watching %s. Ctrl-C to stop all three stages.\n' "$REPO"
-    printf '  plan    agent-plan         → plan         http://127.0.0.1:%s/\n' "$PLAN_PORT"
-    printf '  build   plan-approved      → build        http://127.0.0.1:%s/\n' "$BUILD_PORT"
-    printf '  review  needs-code-review  → review       http://127.0.0.1:%s/\n\n' "$REVIEW_PORT"
+    printf 'Watching %s. Ctrl-C to stop all four stages.\n' "$REPO"
+    printf '  design  system-design      → design        http://127.0.0.1:%s/\n' "$DESIGN_PORT"
+    printf '  plan    agent-plan         → plan          http://127.0.0.1:%s/\n' "$PLAN_PORT"
+    printf '  build   plan-approved      → build         http://127.0.0.1:%s/\n' "$BUILD_PORT"
+    printf '  review  needs-code-review  → review        http://127.0.0.1:%s/\n\n' "$REVIEW_PORT"
     run_all
 }
 
@@ -289,7 +299,7 @@ case "${1:-}" in
         sortie stats "$(workflow_for "$stage")"
         ;;
     -h|--help|help|'')
-        sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+        sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
         ;;
     *)      die "unknown command '$1' — try --help" ;;
 esac

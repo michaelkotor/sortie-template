@@ -18,15 +18,16 @@ merges without you.
 | label `agent-plan` | reads the issue and the code, posts an implementation plan | issue relabelled `agent-review`, plan in a comment |
 | label `plan-approved` | implements that plan, verifies it, pushes a branch, opens a PR | issue relabelled `needs-code-review`, which wakes the reviewer |
 | *(nothing — automatic)* | a second agent re-runs your verification commands and reads the diff against the plan | either an approving review and `agent-review` for you to merge, or a list of what to change and another build round |
+| label `system-design` | reads the issue and the code, posts a design analysis: the problem, the options, and whether the work is worth doing at all | issue relabelled `agent-review`, analysis in a comment — nothing is implemented |
 
 Reply on the issue before approving and your comment is folded in as an additional
 requirement — it adds to the plan rather than replacing it. Re-add `agent-plan` for a
 fresh plan instead.
 
 While a stage is working, the issue says so. Dispatch replaces the trigger label with
-`agent-planning`, `agent-building`, or `agent-reviewing`, and the stage puts the next label
-on when it finishes — so a label is never just "queued or running, no way to tell", and an
-issue that has sat in `agent-building` for an hour is a run that died.
+`agent-planning`, `agent-building`, `agent-reviewing`, or `agent-designing`, and the stage
+puts the next label on when it finishes — so a label is never just "queued or running, no
+way to tell", and an issue that has sat in `agent-building` for an hour is a run that died.
 
 ## The steps it skips
 
@@ -72,20 +73,24 @@ unless you give the reviewer its own account. And the reviewer *runs* your verif
 commands rather than trusting the PR body — a PR claiming green checks that do not
 reproduce is itself a blocking finding.
 
-## Why three processes
+## Why four processes
 
-Planning and review run on DeepSeek V4 Pro, building on DeepSeek V4 Flash. Sortie's dispatch
-rules can override the agent kind and the prompt template per rule, but not adapter config,
-so a per-stage model means a per-stage process. `scripts/sortie.sh run` starts all three,
-gives each its own database, workspace root, and port, and stops them together on Ctrl-C.
-Their label queries are disjoint, so none can pick up another's issues.
+Plan, build, and review all run on `opencode/deepseek-v4-flash-free`, the free OpenCode Zen
+DeepSeek model that needs no API key. Design runs the Sortie `claude-code` adapter on
+Anthropic's Claude Opus (`claude --model opus`) — thinking is its deliverable, so it is the
+one stage that bills real money and the one that needs a Claude Code sign-in. Sortie's
+dispatch rules can override the agent kind and the prompt template per rule, but not
+adapter config, so a per-stage model means a per-stage process. `scripts/sortie.sh run`
+starts all four, gives each its own database, workspace root, and port, and stops them
+together on Ctrl-C. Their label queries are disjoint, so none can pick up another's issues.
 
 ## What gets installed
 
 ```
-config/sortie/WORKFLOW.plan.md    stage 1: DeepSeek V4 Pro, read-only, one turn
-config/sortie/WORKFLOW.build.md   stage 2: DeepSeek V4 Flash, branches and pushes
-config/sortie/WORKFLOW.review.md  stage 3: DeepSeek V4 Pro, verifies and judges the PR
+config/sortie/WORKFLOW.plan.md    stage 1: flash-free, read-only, one turn
+config/sortie/WORKFLOW.build.md   stage 2: flash-free, branches and pushes
+config/sortie/WORKFLOW.review.md  stage 3: flash-free, verifies and judges the PR
+config/sortie/WORKFLOW.design.md  separate track: Opus, read-only design analysis
 config/sortie/prompts/*.md        what each stage is told
 config/sortie/README.md           how the pipeline works, for whoever reads the repo
 config/sortie/AUTONOMY.md         what a human must decide here — written once, never again
@@ -136,4 +141,4 @@ against.
 
 `sortie`, `gh`, and `opencode` on PATH, and an `opencode` you are signed in to (or a
 provider API key like `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` set, if you would rather bill
-the API).
+the API). Running the design stage also needs `claude` (Claude Code) on PATH, signed in.

@@ -1,5 +1,5 @@
 #!/bin/bash
-# install.sh - copy the Sortie three-stage setup into a project.
+# install.sh - copy the Sortie four-stage setup into a project.
 #
 #   ./install.sh [target-repo] [--force] [--run]
 #
@@ -7,7 +7,7 @@
 # so re-running this to pick up template changes is safe: it reports what it skipped and
 # you diff those yourself.
 #
-# --run installs, creates the labels, and starts all three stages in one go, which is the
+# --run installs, creates the labels, and starts all four stages in one go, which is the
 # loop you want while iterating on the template. It implies --force: running means running
 # what the template says now. Your credentials, AGENTS.md and config/sortie/AUTONOMY.md are
 # never overwritten either way.
@@ -67,9 +67,11 @@ printf 'Installing into %s\n\n' "$TARGET"
 place config/sortie/WORKFLOW.plan.md   config/sortie/WORKFLOW.plan.md
 place config/sortie/WORKFLOW.build.md  config/sortie/WORKFLOW.build.md
 place config/sortie/WORKFLOW.review.md config/sortie/WORKFLOW.review.md
+place config/sortie/WORKFLOW.design.md config/sortie/WORKFLOW.design.md
 place config/sortie/prompts/plan.md    config/sortie/prompts/plan.md
 place config/sortie/prompts/build.md   config/sortie/prompts/build.md
 place config/sortie/prompts/review.md  config/sortie/prompts/review.md
+place config/sortie/prompts/design.md  config/sortie/prompts/design.md
 place config/sortie/env.example        config/sortie/env.example
 place config/sortie/README.md          config/sortie/README.md
 place scripts/sortie.sh                scripts/sortie.sh
@@ -141,14 +143,14 @@ fi
 printf '\n%d copied, %d skipped.\n' "$copied" "$skipped"
 [[ $skipped -gt 0 && $FORCE -eq 0 ]] && printf 'Re-run with --force to overwrite the skipped files.\n'
 
-# --run: labels, then all three stages, in the target repository. exec, so Ctrl-C reaches
+# --run: labels, then all four stages, in the target repository. exec, so Ctrl-C reaches
 # the orchestrators directly and this script is not left sitting in the middle.
 if [[ $RUN -eq 1 ]]; then
     [[ -x $TARGET/scripts/sortie.sh ]] || die "no scripts/sortie.sh in $TARGET to run"
     printf '\nSetting up %s ...\n\n' "$TARGET"
     cd "$TARGET" || die "could not enter $TARGET"
     ./scripts/sortie.sh setup || die "setup failed — fix that before running"
-    printf '\nStarting all three stages. Ctrl-C stops them.\n\n'
+    printf '\nStarting all four stages. Ctrl-C stops them.\n\n'
     exec ./scripts/sortie.sh run
 fi
 
@@ -167,14 +169,14 @@ EOF
 fi
 
 cat <<EOF
-  2. Fill in AGENTS.md — all three prompts read it, and the build and review stages run
+  2. Fill in AGENTS.md — all four prompts read it, and the build and review stages run
      the commands in its "Verifying a change" section — and then
      config/sortie/AUTONOMY.md, which is what the shortcuts check before taking themselves.
-  3. ./scripts/sortie.sh setup     creates the nine labels, checks the token
-  4. ./scripts/sortie.sh run       watches for all three trigger labels
+  3. ./scripts/sortie.sh setup     creates the eleven labels, checks the token
+  4. ./scripts/sortie.sh run       watches for all four trigger labels
 
 Or do 3 and 4 in one step next time: re-run this installer with --run, which reinstalls
-the template, creates the labels, and starts all three stages.
+the template, creates the labels, and starts all four stages.
 
 Then label an issue 'agent-plan'. You get a plan as a comment; add 'plan-approved'
 and you get a pull request, reviewed before it reaches you.
