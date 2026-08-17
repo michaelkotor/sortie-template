@@ -25,8 +25,8 @@ substituted at copy time. See [README.md](README.md) for what the installed pipe
   — not `AGENTS.md.example`, not `install.sh`'s comments — re-explains how the three stages
   work; they point at it instead. A description duplicated in two files is one of them lying
   eventually.
-- **Bash only**, no new runtime dependency beyond `sortie`, `gh`, and `opencode`, which the
-  scripts already assume are on `PATH`.
+- **Bash only**, no new runtime dependency beyond `sortie`, `gh`, and `opencode` — plus
+  `claude` (Claude Code), which only the design stage needs.
 
 ## Layout
 

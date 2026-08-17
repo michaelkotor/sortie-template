@@ -270,6 +270,7 @@ run() {
 
     if [[ -n $want ]]; then
         [[ " ${STAGES[*]} " == *" $want "* ]] || die "stage must be one of: ${STAGES[*]}"
+        [[ $want == design ]] && require claude 'https://claude.com/claude-code'
         require_free_port "$want" "$(port_for "$want")"
         printf 'Watching %s for %s. Ctrl-C to stop.\n\n' "$REPO" "$(trigger_for "$want")"
         stage_env "$want"
@@ -277,13 +278,16 @@ run() {
         return
     fi
 
+    # claude is only the design stage's dependency, so it is checked where a run that
+    # starts design is decided — not in preflight, which would also gate the free stages.
+    require claude 'https://claude.com/claude-code'
     for stage in "${STAGES[@]}"; do require_free_port "$stage" "$(port_for "$stage")"; done
 
     printf 'Watching %s. Ctrl-C to stop all four stages.\n' "$REPO"
-    printf '  design  system-design      → design        http://127.0.0.1:%s/\n' "$DESIGN_PORT"
     printf '  plan    agent-plan         → plan          http://127.0.0.1:%s/\n' "$PLAN_PORT"
     printf '  build   plan-approved      → build         http://127.0.0.1:%s/\n' "$BUILD_PORT"
-    printf '  review  needs-code-review  → review        http://127.0.0.1:%s/\n\n' "$REVIEW_PORT"
+    printf '  review  needs-code-review  → review        http://127.0.0.1:%s/\n' "$REVIEW_PORT"
+    printf '  design  system-design      → design        http://127.0.0.1:%s/\n\n' "$DESIGN_PORT"
     run_all
 }
 
