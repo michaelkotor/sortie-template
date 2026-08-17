@@ -1,8 +1,9 @@
 # The automated issue workflow
 
 Labelled issues are handled by OpenCode through [Sortie](https://github.com/sortie-ai/sortie),
-in three stages, each its own process. `../../scripts/sortie.sh run` starts them; nothing
-happens to an issue that carries no label.
+in four stages, each its own process. Three of them form the plan → build → review line; the
+fourth, system design, is a separate track that analyses a ticket without ever building it.
+`../../scripts/sortie.sh run` starts them; nothing happens to an issue that carries no label.
 
 This file is installed by the template and refreshed when it is upgraded, so it stays
 accurate without anyone editing `AGENTS.md`. The one part that is yours to write lives in
@@ -12,6 +13,7 @@ accurate without anyone editing `AGENTS.md`. The one part that is yours to write
 
 | Label | What happens | Where it goes |
 | --- | --- | --- |
+| `system-design` | reads the issue and the code, comments a design analysis: the problem, the options, and whether it is worth doing at all. Runs on Claude Opus — the one paid stage — and never implements anything | `agent-review` for you to read; if you decide to proceed, label `agent-plan` yourself |
 | `agent-plan` | reads the issue and the code, comments an implementation plan | `agent-review` for you to approve — or straight to `plan-approved`, if the planner judged the ticket small and unambiguous |
 | `plan-approved` | implements that plan, verifies it, pushes a branch, opens a PR | `needs-code-review` — or straight to `agent-review`, if the diff was trivial and verified |
 | `needs-code-review` | a second agent re-runs the verification and reads the diff against the plan | `agent-review` when it approves, `plan-approved` for another build round, at most twice |
@@ -20,8 +22,9 @@ accurate without anyone editing `AGENTS.md`. The one part that is yours to write
 claim on it.
 
 While a stage is working, the issue says so: dispatch replaces the trigger label with
-`agent-planning`, `agent-building`, or `agent-reviewing` for as long as that agent runs. An
-issue sitting in one of those for an hour is a run that died, not a run in progress.
+`agent-planning`, `agent-building`, `agent-reviewing`, or `agent-designing` for as long as
+that agent runs. An issue sitting in one of those for an hour is a run that died, not a run
+in progress.
 
 ## The shortcuts, and how to stop them
 
@@ -50,6 +53,7 @@ To turn a shortcut off:
 WORKFLOW.plan.md    stage 1: plan, read-only, one turn
 WORKFLOW.build.md   stage 2: build, branches and pushes
 WORKFLOW.review.md  stage 3: review, verifies and judges the PR
+WORKFLOW.design.md  separate track: design analysis, read-only, runs on Opus
 prompts/*.md        what each stage is told
 AUTONOMY.md         what this project never lets an agent decide alone — yours to write
 env.example         the token, the switches, and where to get them
