@@ -102,10 +102,6 @@ without re-deriving your reasoning. Omit the section entirely if there is nothin
 Non-blocking observations, or omit.
 ```
 
-End it with this line, which is how later rounds count themselves:
-
-> _Review by Claude Code via Sortie (round N). Not a human review._
-
 ## Report the run
 
 Before you take an exit, hang this run's numbers on the issue. `sortie_status` and
@@ -127,8 +123,6 @@ When `used_tokens_complete` is false — some sessions' spend was never reported
 opencode build runs, which record no tokens — write "not measured" instead of a number:
 unmeasured spend is not zero spend. Close with the fixed footer, which keeps the message
 greppable and distinct from the review footer above:
-
-> _Run stats from Sortie._
 
 ## Then take exactly one exit
 
@@ -197,8 +191,7 @@ gh pr view "$pr" --json reviews,comments \
   --jq '[(.reviews[]?, .comments[]?) | select(.body | contains("Review by Claude Code via Sortie"))] | length'
 ```
 
-A review already on the PR — a comment or review carrying the `Review by Claude Code via
-Sortie` footer — must not be posted again. Posting it twice corrupts the round count that
+A review already on the PR — Posting it twice corrupts the round count that
 `prompts/review.md:29` and `prompts/build.md:151` both grep for: a genuine round 2 would read
 as round 3 and escalate to a human a full cycle early.
 
