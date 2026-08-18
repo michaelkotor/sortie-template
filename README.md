@@ -75,25 +75,25 @@ reproduce is itself a blocking finding.
 
 ## Why four processes
 
-Plan, review, and design run on Claude Code, model `claude-opus-5` — the three passes where
-judgement matters most, and where the stronger model earns its keep. Building runs on
-OpenCode's free `deepseek-v4-flash-free`, which needs no key: it is the highest-volume stage,
-and doing it for free is the point. Sortie's dispatch rules can override the agent kind and
+Plan and design run on Claude Code, model `claude-opus-5` — the passes where judgement
+matters most, and where the stronger model earns its keep. Building and review run on
+OpenCode's free `deepseek-v4-flash-free`, which needs no key: they are the volume stages,
+and doing them for free is the point. Sortie's dispatch rules can override the agent kind and
 the prompt template per rule, but not adapter config, so a per-stage model means a per-stage
 process. `scripts/sortie.sh run` starts all four, gives each its own database, workspace
 root, and port, and stops them together on Ctrl-C. Their label queries are disjoint, so none
 can pick up another's issues.
 
-If Claude Code itself is unavailable, Sortie retries whichever stage hit it with backoff
-rather than falling back to a different tool — Sortie has no cross-adapter fallback, so a
-run either comes back on `claude-code` or keeps retrying.
+If Claude Code itself is unavailable, Sortie retries whichever of plan or design hit it with
+backoff rather than falling back to a different tool — Sortie has no cross-adapter fallback,
+so a run either comes back on `claude-code` or keeps retrying.
 
 ## What gets installed
 
 ```
 config/sortie/WORKFLOW.plan.md    stage 1: Claude Code (Opus), read-only, one turn
 config/sortie/WORKFLOW.build.md   stage 2: OpenCode (DeepSeek, free), branches and pushes
-config/sortie/WORKFLOW.review.md  stage 3: Claude Code (Opus), verifies and judges the PR
+config/sortie/WORKFLOW.review.md  stage 3: OpenCode (DeepSeek, free), verifies and judges the PR
 config/sortie/WORKFLOW.design.md  separate track: Claude Code (Opus), read-only design analysis
 config/sortie/prompts/*.md        what each stage is told
 config/sortie/README.md           how the pipeline works, for whoever reads the repo
@@ -143,7 +143,7 @@ against.
 
 ## Requirements
 
-`sortie`, `gh`, `claude`, and `opencode` on PATH. Plan, review, and design need a `claude`
+`sortie`, `gh`, `claude`, and `opencode` on PATH. Plan and design need a `claude`
 you are signed in to (`claude` → `/login`, Pro/Max subscription — or `ANTHROPIC_API_KEY` set,
-if you would rather bill the API). Building runs on OpenCode's free DeepSeek model and needs
-no key.
+if you would rather bill the API). Building and review run on OpenCode's free DeepSeek model,
+and need no key.

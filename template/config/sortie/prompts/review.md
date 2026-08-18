@@ -19,6 +19,7 @@ repository from the git remote and the code under you is the code under review.
 pr=$(gh pr list --head "sortie/issue-{{ .issue.identifier }}" --state open --json number --jq '.[0].number // empty')
 ```
 
+{{ if not .run.is_continuation }}
 If `$pr` is empty there is nothing to review. Post a comment on the issue saying so, then
 take the **escalate** exit below and stop.
 
@@ -180,3 +181,33 @@ which is why its failure is ignored.
 Post exactly one review or comment. If a `gh` call fails outright, say so in your final
 message and still take the escalate exit — an issue left carrying `agent-reviewing` is
 re-reviewed every minute.
+{{ end }}
+{{ if .run.is_continuation }}
+
+## Continuation — turn {{ .run.turn_number }} of {{ .run.max_turns }}
+
+You are resuming this review, not starting one. The previous turn may already have posted
+the review and stalled, or the run may have been cut off mid-work. Establish the state
+before acting on anything:
+
+```bash
+[ -f .sortie/review.md ] && echo "review already written"
+[ -f .sortie/status ] && echo "status: $(cat .sortie/status)"
+gh pr view "$pr" --json reviews,comments \
+  --jq '[(.reviews[]?, .comments[]?) | select(.body | contains("Review by Claude Code via Sortie"))] | length'
+```
+
+A review already on the PR — a comment or review carrying the `Review by Claude Code via
+Sortie` footer — must not be posted again. Posting it twice corrupts the round count that
+`prompts/review.md:29` and `prompts/build.md:151` both grep for: a genuine round 2 would read
+as round 3 and escalate to a human a full cycle early.
+
+If the review is already posted, finish only the steps of the exit you chose that the
+previous turn left undone: write `.sortie/status` if it is missing (the value the exit
+requires), then the label edits that exit lists — in that order — and stop.
+
+If it is not posted, resume the review where it stopped — read `.sortie/review.md` if it
+exists, verify rather than trusting it, decide **Blocking** / **Minor**, and take one exit:
+post the review and that exit's status file and label edits, and stop. Do not redo work
+already on disk.
+{{ end }}

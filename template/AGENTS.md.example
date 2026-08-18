@@ -51,9 +51,9 @@ Anything you would say in review for the third time.]
 
 ## Automated issue workflow
 
-Labelled issues are handled by Sortie, running Claude Code for planning and review and
-OpenCode for building. How that works, which labels drive it, and what this project never
-lets an agent decide alone: [`config/sortie/README.md`](config/sortie/README.md).
+Labelled issues are handled by Sortie, running Claude Code for planning and design and
+OpenCode for building and review. How that works, which labels drive it, and what this
+project never lets an agent decide alone: [`config/sortie/README.md`](config/sortie/README.md).
 
 That is the whole of it — this section is a pointer and does not go stale. Nothing about the
 workflow is described twice.

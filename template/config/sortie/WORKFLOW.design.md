@@ -5,13 +5,12 @@
 # nothing, implements nothing, and never starts work on its own — the analysis comes back
 # to you labelled `agent-review`, and chaining it into a plan is your call.
 #
-# This is the one stage that does not run free. The other three run
-# opencode/deepseek-v4-flash-free, the free OpenCode Zen DeepSeek model that needs no API
-# key. Design runs on Anthropic's Opus instead — thinking is the deliverable, so it is told
-# to read more and given long timeouts, and it bills real money. It needs a Claude Code
-# sign-in on the machine running the stage (see env.example), which for this stage is on
-# PATH as `claude` in addition to `sortie`, `gh`, and `opencode`. The cost caps below are
-# the only thing between a runaway run and a real bill.
+# This stage runs on Anthropic's Opus rather than the free model — thinking is the deliverable,
+# so it is told to read more and given long timeouts, and it bills real money. Planning also
+# runs on Claude Code; building and review run on OpenCode's free opencode/deepseek-v4-flash-free,
+# which needs no API key. Design needs a Claude Code sign-in on the machine running the stage
+# (see env.example), which for this stage is on PATH as `claude` in addition to `sortie`, `gh`,
+# and `opencode`. The cost caps below are the only thing between a runaway run and a real bill.
 #
 # The stages are separate files because Sortie's dispatch rules can override the agent kind
 # and the prompt template per rule, but not adapter config — so a per-stage model means a

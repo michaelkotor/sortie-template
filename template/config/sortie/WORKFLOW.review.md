@@ -3,6 +3,10 @@
 # stage judged that it needs reviewing at all — a trivial diff is sent straight to you
 # instead, and this stage never sees it.
 #
+# It runs on the same free model as the build stage it judges — opencode/deepseek-v4-flash-free,
+# no key needed — so the reviewer is no stronger than the planner whose work it checks. The
+# gate is the verification and the diff read below, not the model.
+#
 # The build stage hands the issue over labelled `needs-code-review`. This stage checks out
 # the PR branch, re-runs the project's own verification commands, reads the diff against
 # the approved plan, and takes one of two exits:
@@ -80,9 +84,9 @@ hooks:
   timeout_ms: 300000
 
 agent:
-  kind: claude-code
-  command: claude
-  max_turns: 1                    # verify, judge, post, route the label
+  kind: opencode
+  command: opencode
+  max_turns: 8                    # verify, judge, post, route the label — no inner turn budget, so 8 not 1
   max_concurrent_agents: 1
   turn_timeout_ms: 1800000
   stall_timeout_ms: 300000
@@ -91,10 +95,9 @@ agent:
   max_sessions: 10                # give up after ten failed runs, not retry forever
   max_retry_backoff_ms: 1800000   # 30 min cap — waits double per failed run, 10s → … → 160s → 320s → … → 30m
 
-claude-code:
-  permission_mode: bypassPermissions
-  model: claude-opus-5            # the reviewer should be at least as strong as the planner
-  max_turns: 60
+opencode:
+  dangerously_skip_permissions: true
+  model: opencode/deepseek-v4-flash-free  # same free model as the build stage it judges
 ---
 
 The prompt for this stage is `config/sortie/prompts/review.md`. This body is the fallback
