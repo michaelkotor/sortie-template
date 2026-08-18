@@ -86,6 +86,8 @@ agent:
   max_concurrent_agents: 1
   turn_timeout_ms: 1800000
   stall_timeout_ms: 300000
+  read_timeout_ms: 120000         # wait for the agent's first event; a cold start can outlast
+                                  # the 5s default, which fails as `response_timeout`
   max_sessions: 10                # give up after ten failed runs, not retry forever
   max_retry_backoff_ms: 1800000   # 30 min cap — waits double per failed run, 10s → … → 160s → 320s → … → 30m
 
