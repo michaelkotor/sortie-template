@@ -12,7 +12,9 @@ design hit it with backoff rather than switching to a different tool — Sortie 
 cross-adapter fallback, so a stuck run stays on `claude-code` until it recovers. A failed
 run always waits double the last one, 10s → 20s → 40s → 80s → 160s → 320s → …, up to a
 30-minute cap, and a stage gives an issue up after ten failed runs instead of retrying it
-forever.
+forever. `response_timeout: timed out waiting for first opencode json event` is one such
+failure — the agent took longer than the wait for its first event, usually a cold start;
+the real error is in the per-stage log under `~/.sortie/<owner>-<repo>/logs/`.
 
 This file is installed by the template and refreshed when it is upgraded, so it stays
 accurate without anyone editing `AGENTS.md`. The one part that is yours to write lives in

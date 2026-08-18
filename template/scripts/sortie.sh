@@ -105,6 +105,7 @@ load_env() {
     # State is keyed by repository, so several projects can run side by side.
     STATE_DIR="$HOME/.sortie/${REPO//\//-}"
     mkdir -p "$STATE_DIR" || die "could not create $STATE_DIR"
+    mkdir -p "$STATE_DIR/logs" || die "could not create $STATE_DIR/logs"
 }
 
 # Each stage gets its own database and workspace root, so the two processes never contend.
@@ -113,9 +114,12 @@ stage_ws() { printf '%s/workspaces-%s' "$STATE_DIR" "$1"; }
 stage_db() { printf '%s/sortie-%s.db' "$STATE_DIR" "$1"; }
 
 stage_env() {
-    mkdir -p "$(stage_ws "$1")" || die "could not create $(stage_ws "$1")"
-    export SORTIE_WORKSPACE_ROOT="$(stage_ws "$1")"
-    export SORTIE_DB_PATH="$(stage_db "$1")"
+    local ws db
+    ws=$(stage_ws "$1")
+    db=$(stage_db "$1")
+    mkdir -p "$ws" || die "could not create $ws"
+    export SORTIE_WORKSPACE_ROOT="$ws"
+    export SORTIE_DB_PATH="$db"
 }
 
 require() {
@@ -257,7 +261,14 @@ check() {
 # Each is launched through `env` with its output going to a process substitution rather than
 # a pipeline. That matters: `env` execs into sortie, so $! is sortie's own pid. In a
 # pipeline $! would be awk's, and in a subshell it would be the subshell's — killing either
-# of those leaves the orchestrator running.
+# of those leaves the orchestrator running. The tee sits inside that substitution for the
+# same reason: sortie's stdout becomes the tee's input, so the pid that $! holds is still
+# sortie's. The stream also lands in a per-stage log, so a run that dies is on disk even
+# though the agent's own output is gone — sortie only recovers the real failure reason at
+# debug level, and nothing but the terminal kept it before.
+#
+# Logs append across runs and are never rotated: a restart (auto-update included) must not
+# erase the failed run that is being investigated. Delete them when they outweigh their use.
 run_all() {
     local pids=() stage ws
     trap 'trap - INT TERM EXIT; kill "${pids[@]}" 2>/dev/null; wait 2>/dev/null; exit 0' INT TERM EXIT
@@ -267,7 +278,7 @@ run_all() {
         mkdir -p "$ws" || die "could not create $ws"
         env SORTIE_WORKSPACE_ROOT="$ws" SORTIE_DB_PATH="$(stage_db "$stage")" \
             sortie --port "$(port_for "$stage")" --log-level "$LOG_LEVEL" "$(workflow_for "$stage")" \
-            > >(awk -v s="$stage" '{ printf "[%-6s] %s\n", s, $0; fflush() }') 2>&1 &
+            > >(tee -a "$STATE_DIR/logs/$stage.log" | awk -v s="$stage" '{ printf "[%-6s] %s\n", s, $0; fflush() }') 2>&1 &
         pids+=("$!")
     done
 
@@ -372,7 +383,8 @@ run() {
     printf '  design  system-design      → design        http://127.0.0.1:%s/\n' "$DESIGN_PORT"
     printf '  plan    agent-plan         → plan          http://127.0.0.1:%s/\n' "$PLAN_PORT"
     printf '  build   plan-approved      → build         http://127.0.0.1:%s/\n' "$BUILD_PORT"
-    printf '  review  needs-code-review  → review        http://127.0.0.1:%s/\n\n' "$REVIEW_PORT"
+    printf '  review  needs-code-review  → review        http://127.0.0.1:%s/\n' "$REVIEW_PORT"
+    printf '  logs    each stage         → <stage>.log   %s\n\n' "$STATE_DIR/logs"
     run_all
 }
 
