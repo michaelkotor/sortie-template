@@ -298,12 +298,21 @@ run_all() {
 # when the tree is safe, and restarts the stages — but never on top of a live agent. It
 # only runs with SORTIE_AUTO_UPDATE=on; the default keeps the tree untouched.
 
+# How many issues are mid-run — an in-progress label on an open issue. Queued work (an
+# issue still on a trigger label) does not count: it has not been dispatched, so a restart
+# loses nothing for it. Live open-issue list rather than search/issues, whose index lags
+# the repo and counts closed issues too. Prints nothing on failure; callers defer then.
+mid_run_count() {
+    gh issue list --repo "$REPO" --state open --json labels --limit 100 \
+        --jq '[.[] | select([.labels[].name] | any(. == "agent-planning" or . == "agent-building" or . == "agent-reviewing" or . == "agent-designing"))] | length' 2>/dev/null
+}
+
 # watch_upstream <stage-pid...>
 # $@ is the pids of the four sortie processes, killed on restart. This function's own pid
 # is appended to run_all's pids array by its caller, so Ctrl-C kills it with the stages.
 watch_upstream() {
     local stage_pids=("$@")
-    local default reason
+    local default reason busy deadline
     while :; do
         sleep "$AUTO_UPDATE_INTERVAL"
 
@@ -314,24 +323,10 @@ watch_upstream() {
         git fetch --quiet origin "$default" || continue
         [[ $(git rev-parse HEAD) == "$(git rev-parse "origin/$default")" ]] && continue
 
-        # An issue mid-run must not be killed mid-turn, and a deferred update is re-checked
-        # next interval, so this is checked before anything is merged — afterwards HEAD
-        # would already match and the pending restart would never be noticed. One search
-        # call, because `gh issue list --label` ANDs its labels.
-        # Unknown count defers: a failed call means the safe assumption is that a stage is
-        # mid-run, since restarting on top of one is the failure mode this guard exists for.
-        local busy
-        busy=$(gh api -X GET search/issues \
-            -f q="repo:$REPO is:issue label:agent-planning,agent-building,agent-reviewing,agent-designing" \
-            --jq .total_count 2>/dev/null)
-        if [[ -z $busy || $busy -gt 0 ]]; then
-            printf 'sortie: update pending — %s issue(s) mid-run, will re-check\n' "${busy:-unknown}"
-            continue
-        fi
-
         # Fast-forward only, and only when the tree is safe to move. -uno is load-bearing:
         # in this repo the installed config/sortie/* and scripts/sortie.sh are untracked
-        # copies, so a plain --porcelain check would report dirty forever.
+        # copies, so a plain --porcelain check would report dirty forever. Checked before
+        # the busy gate below so an unsafe tree defers without sampling the issue list.
         reason=""
         [[ $(git symbolic-ref --short HEAD 2>/dev/null || echo detached) == "$default" ]] \
             || reason="HEAD is on $(git symbolic-ref --short HEAD 2>/dev/null || echo detached), not $default"
@@ -339,6 +334,38 @@ watch_upstream() {
         if [[ -n $reason ]]; then
             printf 'sortie: update available but %s — leaving the tree alone\n' "$reason"
             continue
+        fi
+
+        # An issue mid-run must not be killed mid-turn, and a deferred update is re-checked
+        # next interval, so this is checked before anything is merged — afterwards HEAD
+        # would already match and the pending restart would never be noticed.
+        #
+        # The count is live open issues, not search/issues: the search index lags the repo
+        # and counts closed issues, so a closed issue still carrying an in-progress label
+        # blocks the update forever. Queued work — an issue still on a trigger label — does
+        # not count: it has not been dispatched, so a restart loses nothing for it. Unknown
+        # count defers: a failed call means the safe assumption is that a stage is mid-run.
+        busy=$(mid_run_count)
+        if [[ -z $busy ]]; then
+            printf 'sortie: update pending — mid-run count unknown, will re-check\n'
+            continue
+        fi
+
+        # Stages finish turns in gaps of seconds, so one sample per interval lands in one
+        # almost never. Re-sample every 15s until nothing is mid-run or a full interval has
+        # passed. The fetch is already done and origin/$default is local, so the re-samples
+        # cost nothing but the issue-list call.
+        if [[ $busy -gt 0 ]]; then
+            printf 'sortie: update pending — %s issue(s) mid-run, re-checking every 15s\n' "$busy"
+            deadline=$((SECONDS + AUTO_UPDATE_INTERVAL))
+            while [[ $busy -gt 0 && $SECONDS -lt $deadline ]]; do
+                sleep 15
+                busy=$(mid_run_count)
+            done
+            if [[ -z $busy || $busy -gt 0 ]]; then
+                printf 'sortie: update pending — %s issue(s) mid-run, will re-check\n' "${busy:-unknown}"
+                continue
+            fi
         fi
 
         git merge --ff-only origin/"$default" 2>/dev/null \
