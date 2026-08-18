@@ -105,6 +105,30 @@ End it with this line, which is how later rounds count themselves:
 
 > _Review by Claude Code via Sortie (round N). Not a human review._
 
+## Report the run
+
+Before you take an exit, hang this run's numbers on the issue. `sortie_status` and
+`cost_budget` are read-only sidecar tools with no spend of their own — call both, write
+`.sortie/stats.md`, and post it:
+
+```bash
+gh issue comment {{ .issue.identifier }} --body-file .sortie/stats.md
+```
+
+Post it on the issue, not the pull request: the issue is the one thread every stage
+shares, and these numbers belong with the other stages' totals there.
+
+The body carries: the stage ("review"), turns (`turn_number` of `max_turns`), session
+duration (`session_duration_seconds` seconds), the four token figures from `tokens`
+(input / output / cache-read / total), the cumulative issue spend (`used_tokens` of
+`budget_tokens`, `remaining_tokens` left), and `used_sessions` of `budget_sessions`.
+When `used_tokens_complete` is false — some sessions' spend was never reported, as with
+opencode build runs, which record no tokens — write "not measured" instead of a number:
+unmeasured spend is not zero spend. Close with the fixed footer, which keeps the message
+greppable and distinct from the review footer above:
+
+> _Run stats from Sortie._
+
 ## Then take exactly one exit
 
 GitHub refuses to let an account approve or request changes on its own pull request, and
