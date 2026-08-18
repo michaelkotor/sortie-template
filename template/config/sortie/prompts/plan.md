@@ -36,7 +36,7 @@ and read them before forming an opinion. If there is no `AGENTS.md`, fall back t
 2. Base the plan on what the code actually does. Quote real file paths and function or
    symbol names you have opened, not ones you assume exist.
 3. If the ticket is ambiguous, do not guess silently — state the interpretation you chose
-   and list the question under open questions.
+   and list the question under open questions, with the answer you recommend and why.
 4. If the ticket is not actionable at all (no discernible request, or it needs a decision
    only a human can make), say so plainly instead of inventing a plan.
 
@@ -64,7 +64,9 @@ setting; just take the human exit.
 Otherwise you may self-approve only when **every** one of these holds:
 
 1. Your **Open questions** section is "None", and you did not have to choose between
-   readings of the ticket to write the plan.
+   readings of the ticket to write the plan. A question with a recommendation still is a
+   question — the recommendation makes it easier to answer, not answered, so the human
+   must still approve.
 2. Effort is **S**, and the work is confined to the files your "Files to touch" table
    names — a handful, in one area of the code.
 3. `AGENTS.md` exists, and its "Verifying a change" section has commands that actually
@@ -132,7 +134,11 @@ One line on what could actually break. Omit when there is nothing real.
 ## Open questions
 
 At most three, one line each. If there are more than three, that alone means the plan
-needs a human; include only the three that matter.
+needs a human; include only the three that matter. Each question carries the answer you
+recommend and the reason, on the same line, e.g.
+`Question — **Recommend:** <answer>, because <reason>.` A recommendation that reads as a
+resolution is the point: the human should be able to reply "yes" instead of re-deriving
+the trade-off.
 
 ## Effort
 
