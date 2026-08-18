@@ -323,6 +323,19 @@ watch_upstream() {
         git fetch --quiet origin "$default" || continue
         [[ $(git rev-parse HEAD) == "$(git rev-parse "origin/$default")" ]] && continue
 
+        # Fast-forward only, and only when the tree is safe to move. -uno is load-bearing:
+        # in this repo the installed config/sortie/* and scripts/sortie.sh are untracked
+        # copies, so a plain --porcelain check would report dirty forever. Checked before
+        # the busy gate below so an unsafe tree defers without sampling the issue list.
+        reason=""
+        [[ $(git symbolic-ref --short HEAD 2>/dev/null || echo detached) == "$default" ]] \
+            || reason="HEAD is on $(git symbolic-ref --short HEAD 2>/dev/null || echo detached), not $default"
+        [[ -n $reason || -z $(git status --porcelain -uno) ]] || reason="the working tree has uncommitted tracked changes"
+        if [[ -n $reason ]]; then
+            printf 'sortie: update available but %s — leaving the tree alone\n' "$reason"
+            continue
+        fi
+
         # An issue mid-run must not be killed mid-turn, and a deferred update is re-checked
         # next interval, so this is checked before anything is merged — afterwards HEAD
         # would already match and the pending restart would never be noticed.
@@ -353,19 +366,6 @@ watch_upstream() {
                 printf 'sortie: update pending — %s issue(s) mid-run, will re-check\n' "${busy:-unknown}"
                 continue
             fi
-        fi
-
-        # Fast-forward only, and only when the tree is safe to move. -uno is load-bearing:
-        # in this repo the installed config/sortie/* and scripts/sortie.sh are untracked
-        # copies, so a plain --porcelain check would report dirty forever. Checked before
-        # the busy gate above so an unsafe tree defers without sampling the issue list.
-        reason=""
-        [[ $(git symbolic-ref --short HEAD 2>/dev/null || echo detached) == "$default" ]] \
-            || reason="HEAD is on $(git symbolic-ref --short HEAD 2>/dev/null || echo detached), not $default"
-        [[ -n $reason || -z $(git status --porcelain -uno) ]] || reason="the working tree has uncommitted tracked changes"
-        if [[ -n $reason ]]; then
-            printf 'sortie: update available but %s — leaving the tree alone\n' "$reason"
-            continue
         fi
 
         git merge --ff-only origin/"$default" 2>/dev/null \
