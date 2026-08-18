@@ -1,7 +1,7 @@
 ---
-# Stage 1 of 3 — planning. Followed by WORKFLOW.build.md and WORKFLOW.review.md. Planning and
-# review run on Claude Code (claude-opus-5) — the two passes where judgement matters most.
-# Building runs on OpenCode's free deepseek-v4-flash-free instead; see WORKFLOW.build.md.
+# Stage 1 of 3 — planning. Followed by WORKFLOW.build.md and WORKFLOW.review.md. Planning runs
+# on Claude Code (claude-opus-5) — the pass where judgement matters most. Building and review
+# run on OpenCode's free deepseek-v4-flash-free instead; see WORKFLOW.build.md.
 #
 # Label an issue `agent-plan` and the agent reads it, works out how it fits the codebase,
 # and posts an implementation plan as a comment. It writes nothing and pushes nothing.

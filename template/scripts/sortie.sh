@@ -20,10 +20,10 @@
 # disable them everywhere.
 #
 # The stages are four Sortie processes because Sortie has no per-dispatch-rule model
-# setting, and the stages are meant to be able to run different models. Plan, review, and
-# design run on Claude Code (claude-opus-5) — the three passes where judgement matters most.
-# Building runs on opencode/deepseek-v4-flash-free, the free OpenCode Zen DeepSeek model,
-# since it is the highest-volume stage and doing it for free is the point. They keep
+# setting, and the stages are meant to be able to run different models. Plan and design run
+# on Claude Code (claude-opus-5) — the passes where judgement matters most. Building and
+# review run on opencode/deepseek-v4-flash-free, the free OpenCode Zen DeepSeek model,
+# since they are the volume stages and doing them for free is the point. They keep
 # separate databases, workspaces, and ports, and their label queries are disjoint, so none
 # can pick up another's issues.
 
@@ -137,8 +137,8 @@ preflight() {
                                     # caller's variable of the same name
     require sortie 'curl -sSL https://get.sortie-ai.com/install.sh | sh'
     require gh     'brew install gh'
-    require claude 'https://claude.com/claude-code'   # plan, review, design
-    require opencode 'https://opencode.ai'             # build
+    require claude 'https://claude.com/claude-code'   # plan, design
+    require opencode 'https://opencode.ai'             # build, review
     for stage in "${STAGES[@]}"; do
         [[ -f $(workflow_for "$stage") ]] || die "missing $(workflow_for "$stage")"
     done

@@ -2,14 +2,14 @@
 
 Labelled issues are handled by [Sortie](https://github.com/sortie-ai/sortie), in four stages,
 each its own process. Three of them form the plan → build → review line; the fourth, system
-design, is a separate track that analyses a ticket without ever building it. Plan, review,
-and design run on Claude Code (Opus); building runs on OpenCode's free DeepSeek model.
+design, is a separate track that analyses a ticket without ever building it. Plan and design
+run on Claude Code (Opus); building and review run on OpenCode's free DeepSeek model.
 `../../scripts/sortie.sh run` starts all four; nothing happens to an issue that carries no
 label.
 
-If Claude Code itself is down or unreachable, Sortie retries whichever of plan, review, or
-design hit it with backoff rather than switching to a different tool — Sortie has no
-cross-adapter fallback, so a stuck run stays on `claude-code` until it recovers. A failed
+If Claude Code itself is down or unreachable, Sortie retries whichever of plan or design hit
+it with backoff rather than switching to a different tool — Sortie has no cross-adapter
+fallback, so a stuck run stays on `claude-code` until it recovers. A failed
 run always waits double the last one, 10s → 20s → 40s → 80s → 160s → 320s → …, up to a
 30-minute cap, and a stage gives an issue up after ten failed runs instead of retrying it
 forever.
@@ -25,7 +25,7 @@ accurate without anyone editing `AGENTS.md`. The one part that is yours to write
 | `agent-plan` | reads the issue and the code, comments an implementation plan | `agent-review` for you to approve — or straight to `plan-approved`, if the planner judged the ticket small and unambiguous |
 | `plan-approved` | implements that plan, verifies it, pushes a branch, opens a PR | `needs-code-review` — or straight to `agent-review`, if the diff was trivial and verified |
 | `needs-code-review` | a second agent re-runs the verification and reads the diff against the plan | `agent-review` when it approves, `plan-approved` for another build round, at most twice |
-| `system-design` | reads the issue and the code, comments a design analysis: the problem, the options, and whether it is worth doing at all. Runs on Claude Code, like plan and review, and never implements anything | `agent-review` for you to read; if you decide to proceed, label `agent-plan` yourself |
+| `system-design` | reads the issue and the code, comments a design analysis: the problem, the options, and whether it is worth doing at all. Runs on Claude Code, like plan, and never implements anything | `agent-review` for you to read; if you decide to proceed, label `agent-plan` yourself |
 
 `agent-review` means the issue is waiting on a human. `agent-done` releases the agent's
 claim on it.
