@@ -238,6 +238,11 @@ Otherwise you may skip the review only when **every** one of these holds:
 
 If you are unsure whether one of those is touched, it is. Send it to the reviewer.
 
+<!-- TODO: post run stats on the issue here, mirroring the "Report the run" section in
+     prompts/review.md, once opencode records token usage. Build runs currently report
+     tokens_measured = 0, so a report would say "not measured" on every build — the review
+     stage's numbers are the ones an owner can read. Land this when opencode measures spend. -->
+
 ## The exit from a first build — take exactly one
 
 **Hand it to the reviewer** — the default:

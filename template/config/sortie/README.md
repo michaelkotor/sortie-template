@@ -30,6 +30,10 @@ accurate without anyone editing `AGENTS.md`. The one part that is yours to write
 `agent-review` means the issue is waiting on a human. `agent-done` releases the agent's
 claim on it.
 
+After each run, the review stage posts its usage — turns, duration, token counts, and
+spend against the issue budget — as a comment on the issue; the build stage will once
+opencode reports usage.
+
 While a stage is working, the issue says so: dispatch replaces the trigger label with
 `agent-planning`, `agent-building`, `agent-reviewing`, or `agent-designing` for as long as
 that agent runs. An issue sitting in one of those for an hour is a run that died, not a run
