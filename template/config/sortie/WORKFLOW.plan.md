@@ -98,7 +98,7 @@ agent:
 
 claude-code:
   permission_mode: bypassPermissions  # required headless; the workspace is disposable
-  model: claude-sonet-5                # planning is the part worth the better model
+  model: claude-opus-5                # planning is the part worth the better model
   max_turns: 60                       # Claude Code's own internal turn budget
 ---
 
