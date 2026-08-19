@@ -47,6 +47,10 @@ substituted at copy time. See [README.md](README.md) for what the installed pipe
 bash -n install.sh
 bash -n template/scripts/sortie.sh
 shellcheck install.sh template/scripts/sortie.sh
+export SORTIE_GITHUB_TOKEN=placeholder
+for f in template/config/sortie/WORKFLOW.*.md; do
+    sortie validate "$f" || exit 1
+done
 ```
 
 For anything touching `install.sh`'s copy logic, run it against a scratch git repo and check
